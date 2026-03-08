@@ -63,36 +63,21 @@ async function descargarArchivoDeWhatsApp(mediaId) {
 // 4. FUNCIÓN PARA PREGUNTAR A GEMINI (TEXTO Y MULTIMEDIA)
 async function analizarConGemini(prompt, archivoBase64 = null) {
     try {
-        let request;
+        let result;
         
         if (archivoBase64) {
-            console.log("Enviando estructura blindada a Gemini con tipo:", archivoBase64.inlineData.mimeType);
+            console.log("Enviando archivo a Gemini. Tipo MIME limpio:", archivoBase64.inlineData.mimeType);
             
-            // Usamos la estructura estricta de objetos en lugar de arreglos para evitar bugs en la librería
-            request = {
-                contents: [{
-                    role: 'user',
-                    parts: [
-                        { text: prompt },
-                        archivoBase64
-                    ]
-                }]
-            };
+            // Volvemos al formato de arreglo simple que requiere la librería de Node.js
+            result = await model.generateContent([prompt, archivoBase64]);
         } else {
-            request = {
-                contents: [{
-                    role: 'user',
-                    parts: [
-                        { text: prompt }
-                    ]
-                }]
-            };
+            // Volvemos al formato de texto directo que ya comprobamos que funciona
+            result = await model.generateContent(prompt);
         }
         
-        const result = await model.generateContent(request);
         return await result.response.text();
     } catch (error) {
-        console.error("Error al consultar a Gemini:", error);
+        console.error("Error detallado al consultar a Gemini:", error.message || error);
         return "Lo siento, estoy teniendo problemas técnicos en este momento.";
     }
 }

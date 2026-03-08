@@ -127,6 +127,9 @@ app.post('/webhook', async (req, res) => { [cite: 247]
             // Extraemos los datos importantes [cite: 254]
             const messageObj = body.entry[0].changes[0].value.messages[0]; [cite: 256]
             const phoneNumber = messageObj.from; // Número de quien nos escribe [cite: 257, 258]
+
+            // LÍNEA DE RADAR AQUÍ 
+            console.log(`¡Alerta! Recibí un mensaje de tipo: ${messageObj.type}`);
             
             let respuestaIA = "";
 

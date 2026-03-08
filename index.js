@@ -32,8 +32,11 @@ async function descargarArchivoDeWhatsApp(mediaId) {
 
         // Paso 2: Descargar el archivo binario desde esa URL
         const mediaResponse = await axios.get(urlDescarga, {
-            headers: { Authorization: `Bearer ${token}` },
-            responseType: 'arraybuffer' // Muy importante para archivos
+            headers: { 
+                Authorization: `Bearer ${token}`,
+                'User-Agent': 'curl/7.64.1' // A veces Meta rechaza bots sin User-Agent
+            },
+            responseType: 'arraybuffer'
         });
 
         // Paso 3: Convertir el archivo a Base64 para Gemini

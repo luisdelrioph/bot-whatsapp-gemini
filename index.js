@@ -24,7 +24,10 @@ async function descargarArchivoDeWhatsApp(mediaId) {
             { headers: { Authorization: `Bearer ${token}` } }
         );
         const urlDescarga = urlResponse.data.url;
-        const mimeType = urlResponse.data.mime_type;
+        
+        // CRÍTICO: Limpiar el formato porque WhatsApp a veces añade parámetros extra que Gemini rechaza
+        let mimeType = urlResponse.data.mime_type;
+        mimeType = mimeType.split(';')[0]; // Toma solo "image/jpeg" y borra el resto
 
         const mediaResponse = await axios.get(urlDescarga, {
             headers: { 
@@ -33,6 +36,15 @@ async function descargarArchivoDeWhatsApp(mediaId) {
             },
             responseType: 'arraybuffer'
         });
+
+        // RADAR DE SEGURIDAD: Comprobar el peso real de lo que descargamos
+        const fileSizeBytes = mediaResponse.data.byteLength || mediaResponse.data.length;
+        console.log(`Archivo descargado de Meta. Tamaño: ${fileSizeBytes} bytes. Tipo limpio: ${mimeType}`);
+        
+        if (fileSizeBytes < 500) {
+            const textoError = Buffer.from(mediaResponse.data).toString('utf-8');
+            console.log("¡CUIDADO! Meta entregó un archivo muy pequeño. Podría ser un error oculto:", textoError);
+        }
 
         const base64Data = Buffer.from(mediaResponse.data, 'binary').toString('base64');
 
@@ -51,12 +63,33 @@ async function descargarArchivoDeWhatsApp(mediaId) {
 // 4. FUNCIÓN PARA PREGUNTAR A GEMINI (TEXTO Y MULTIMEDIA)
 async function analizarConGemini(prompt, archivoBase64 = null) {
     try {
-        let result;
+        let request;
+        
         if (archivoBase64) {
-            result = await model.generateContent([prompt, archivoBase64]);
+            console.log("Enviando estructura blindada a Gemini con tipo:", archivoBase64.inlineData.mimeType);
+            
+            // Usamos la estructura estricta de objetos en lugar de arreglos para evitar bugs en la librería
+            request = {
+                contents: [{
+                    role: 'user',
+                    parts: [
+                        { text: prompt },
+                        archivoBase64
+                    ]
+                }]
+            };
         } else {
-            result = await model.generateContent(prompt);
+            request = {
+                contents: [{
+                    role: 'user',
+                    parts: [
+                        { text: prompt }
+                    ]
+                }]
+            };
         }
+        
+        const result = await model.generateContent(request);
         return await result.response.text();
     } catch (error) {
         console.error("Error al consultar a Gemini:", error);

@@ -11,7 +11,17 @@ app.use(bodyParser.json());
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // Usando el modelo actualizado para soporte a largo plazo
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const model = genAI.getGenerativeModel({ 
+    model: "gemini-2.5-flash",
+    systemInstruction: `Eres un asesor experto, rápido y amable especializado en guiar a las personas en el trámite de pasaportes.
+Tus respuestas serán leídas en la pantalla de un celular a través de WhatsApp. Por lo tanto, DEBES cumplir estas reglas estrictamente en TODAS tus respuestas:
+1. Sé extremadamente conciso y ve directo al grano.
+2. Usa párrafos muy cortos (máximo 2 o 3 líneas por párrafo).
+3. Usa listas con viñetas (-) o numeradas si hay varios pasos o requisitos.
+4. Usa el formato nativo de WhatsApp para resaltar información clave (*escribe entre asteriscos para usar negrita*).
+5. Usa algunos emojis (📄, 📍, 💳) para hacer la lectura más visual, pero no exageres.
+6. Si te envían un audio o un documento, da la respuesta de forma directa sin explicar el proceso técnico de cómo lo analizaste.`
+});
 
 const VERIFY_TOKEN = "mi_token_secreto_123";
 
@@ -136,7 +146,7 @@ async function procesarAudioGemini(mediaId) {
         };
 
         // 5. Consultar a Gemini 
-        const prompt = "Escucha este audio del usuario y responde como un asesor experto en trámites de pasaportes. Tu respuesta será enviada por WhatsApp.";
+        const prompt = "Por favor, responde a la consulta de este audio.";
         
         console.log("Enviando audio a Gemini...");
         const result = await model.generateContent([prompt, audioPart]);
@@ -203,7 +213,7 @@ app.post('/webhook', async (req, res) => {
                     
                     const archivoPreparado = await descargarArchivoDeWhatsApp(mediaId);
                     
-                    let prompt = "¿Qué hay en este archivo? Hazme un resumen detallado como experto en pasaportes.";
+                    let prompt = "Analiza este documento/imagen y dime si cumple con los requisitos para el trámite, o resume su contenido de forma breve.";
                     if (messageObj.type === 'image' && messageObj.image.caption) {
                         prompt = messageObj.image.caption;
                     } else if (messageObj.type === 'document' && messageObj.document.caption) {

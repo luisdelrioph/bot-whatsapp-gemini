@@ -146,6 +146,8 @@ app.post('/webhook', async (req, res) => {
         if (body.entry && body.entry[0].changes && body.entry[0].changes[0].value.messages) {
             const messageObj = body.entry[0].changes[0].value.messages[0];
             const phoneNumber = messageObj.from;
+
+            console.log(`¡Alerta! Recibí un mensaje de tipo: ${messageObj.type}`);
                    
             let respuestaIA = "";
 

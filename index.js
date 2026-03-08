@@ -10,11 +10,12 @@ const app = express();
 app.use(bodyParser.json());
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Usando el modelo actualizado para soporte a largo plazo
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 const VERIFY_TOKEN = "mi_token_secreto_123";
 
-// 3. FUNCIÓN PARA DESCARGAR ARCHIVOS DE META
+// 3. FUNCIÓN PARA DESCARGAR ARCHIVOS DE META (Imágenes y Documentos)
 async function descargarArchivoDeWhatsApp(mediaId) {
     const token = process.env.WHATSAPP_TOKEN;
 
@@ -67,11 +68,8 @@ async function analizarConGemini(prompt, archivoBase64 = null) {
         
         if (archivoBase64) {
             console.log("Enviando archivo a Gemini. Tipo MIME limpio:", archivoBase64.inlineData.mimeType);
-            
-            // Volvemos al formato de arreglo simple que requiere la librería de Node.js
             result = await model.generateContent([prompt, archivoBase64]);
         } else {
-            // Volvemos al formato de texto directo que ya comprobamos que funciona
             result = await model.generateContent(prompt);
         }
         
@@ -108,7 +106,51 @@ async function enviarMensajeWhatsApp(numeroDestino, textoMensaje) {
     }
 }
 
-// 6. RUTA GET: Verificación del Webhook
+// 6. FUNCIÓN PARA PROCESAR AUDIO CON GEMINI
+async function procesarAudioGemini(mediaId) {
+    // Usamos el token de las variables de entorno por seguridad
+    const tokenWhatsApp = process.env.WHATSAPP_TOKEN; 
+    
+    try {
+        // 1. Pedirle a WhatsApp la URL de descarga del audio
+        const urlResponse = await axios.get(`https://graph.facebook.com/v18.0/${mediaId}`, {
+            headers: { 'Authorization': `Bearer ${tokenWhatsApp}` }
+        });
+        const mediaUrl = urlResponse.data.url;
+
+        // 2. Descargar el archivo de audio real
+        const audioResponse = await axios.get(mediaUrl, {
+            headers: { 'Authorization': `Bearer ${tokenWhatsApp}` },
+            responseType: 'arraybuffer'
+        });
+
+        // 3. Convertir el audio a un formato que Gemini entienda (Base64)
+        const base64Audio = Buffer.from(audioResponse.data, 'binary').toString('base64');
+
+        // 4. Preparar el paquete para Gemini
+        const audioPart = {
+            inlineData: {
+                data: base64Audio,
+                mimeType: "audio/ogg" // Formato de notas de voz de WhatsApp
+            }
+        };
+
+        // 5. Consultar a Gemini 
+        const prompt = "Escucha este audio del usuario y responde como un asesor experto en trámites de pasaportes. Tu respuesta será enviada por WhatsApp.";
+        
+        console.log("Enviando audio a Gemini...");
+        const result = await model.generateContent([prompt, audioPart]);
+        const respuestaIA = result.response.text();
+        
+        return respuestaIA;
+
+    } catch (error) {
+        console.error("Error al procesar el audio:", error.response ? error.response.data : error.message);
+        return "Lo siento, tuve un problema al escuchar tu nota de voz. ¿Podrías escribir tu consulta?";
+    }
+}
+
+// 7. RUTA GET: Verificación del Webhook
 app.get('/webhook', (req, res) => {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
@@ -121,10 +163,11 @@ app.get('/webhook', (req, res) => {
     }
 });
 
-// 7. RUTA POST: Procesamiento de mensajes entrantes
+// 8. RUTA POST: Procesamiento de mensajes entrantes
 app.post('/webhook', async (req, res) => {
     const body = req.body;
     
+    // Devolver un 200 OK de inmediato a Meta para evitar reintentos
     res.sendStatus(200);
 
     if (body.object === 'whatsapp_business_account') {
@@ -132,25 +175,35 @@ app.post('/webhook', async (req, res) => {
             const messageObj = body.entry[0].changes[0].value.messages[0];
             const phoneNumber = messageObj.from;
 
-            console.log(`¡Alerta! Recibí un mensaje de tipo: ${messageObj.type}`);
+            console.log(`\n¡Alerta! Recibí un mensaje de tipo: ${messageObj.type}`);
                    
             let respuestaIA = "";
 
             try {
+                // FLUJO 1: TEXTO
                 if (messageObj.type === 'text') {
                     const mensajeUsuario = messageObj.text.body;
                     console.log(`Usuario (${phoneNumber}) dice: ${mensajeUsuario}`);
                     
                     respuestaIA = await analizarConGemini(mensajeUsuario);
-                    console.log(`Gemini responde: ${respuestaIA}`);
+                    console.log(`Gemini responde a texto: ${respuestaIA}`);
                 } 
+                // FLUJO 2: AUDIO (NUEVO)
+                else if (messageObj.type === 'audio') {
+                    const audioId = messageObj.audio.id;
+                    console.log(`Usuario (${phoneNumber}) envió un audio con ID: ${audioId}`);
+                    
+                    respuestaIA = await procesarAudioGemini(audioId);
+                    console.log(`Gemini responde a audio: ${respuestaIA}`);
+                }
+                // FLUJO 3: IMÁGENES Y DOCUMENTOS
                 else if (messageObj.type === 'image' || messageObj.type === 'document') {
                     const mediaId = messageObj.type === 'image' ? messageObj.image.id : messageObj.document.id;
                     console.log(`Usuario (${phoneNumber}) envió un archivo con ID: ${mediaId}`);
                     
                     const archivoPreparado = await descargarArchivoDeWhatsApp(mediaId);
                     
-                    let prompt = "¿Qué hay en este archivo? Hazme un resumen detallado.";
+                    let prompt = "¿Qué hay en este archivo? Hazme un resumen detallado como experto en pasaportes.";
                     if (messageObj.type === 'image' && messageObj.image.caption) {
                         prompt = messageObj.image.caption;
                     } else if (messageObj.type === 'document' && messageObj.document.caption) {
@@ -161,6 +214,7 @@ app.post('/webhook', async (req, res) => {
                     console.log(`Gemini responde al archivo: ${respuestaIA}`);
                 }
 
+                // ENVIAR LA RESPUESTA AL USUARIO
                 if (respuestaIA !== "") {
                     await enviarMensajeWhatsApp(phoneNumber, respuestaIA);
                 }
@@ -172,7 +226,7 @@ app.post('/webhook', async (req, res) => {
     }
 });
 
-// 8. INICIAR EL SERVIDOR
+// 9. INICIAR EL SERVIDOR
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Servidor con Gemini corriendo en el puerto ${PORT}`);

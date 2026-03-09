@@ -251,7 +251,7 @@ let model; // Declaramos el modelo de forma global para que todo el código lo p
 async function cargarConocimientoEIniciar() {
     try {
         // 1. Tu ID del documento de Google Drive
-        const DOC_ID = "PEGA_AQUI_TU_DOC_ID"; 
+        const DOC_ID = 1JYgmoS6TiQPgvZLH-IOlipLoGXQWzOw9eEva8dYNOsQ; 
         
         // 2. URL secreta de Google para exportar el doc como texto plano
         const urlDescarga = `https://docs.google.com/document/export?format=txt&id=${DOC_ID}`;

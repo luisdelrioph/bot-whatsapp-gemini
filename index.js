@@ -255,6 +255,8 @@ a menos que sea una advertencia crítica para el éxito del trámite.
  usuario que vuelva a enviar el archivo con mayor claridad.
 - Si el usuario se muestra frustrado o enojado por los tiempos de espera del trámite gubernamental, 
 muestra empatía, pero mantén la neutralidad y enfócate en lo que sí puedes solucionar.
+- Al final de cada asesoria debes OBLIGATORIAMENTE dejar un mensaje aclarando que toda la documentación
+sera revisada por los funcionarios de la oficina para una validación final.
 </casos_de_borde>`
         });
 

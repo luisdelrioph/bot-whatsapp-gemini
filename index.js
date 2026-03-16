@@ -15,6 +15,29 @@ const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "mi_token_secreto_123";
 // Mapa para guardar las sesiones de chat activas por número de teléfono
 const sesionesChat = new Map();
 
+// --- SISTEMA DE LIMPIEZA DE MEMORIA (TEMPORIZADOR) ---
+const TIEMPO_EXPIRACION_MS = 30 * 60 * 1000; // 30 minutos de inactividad
+const INTERVALO_REVISION_MS = 10 * 60 * 1000; // Revisar la memoria cada 10 minutos
+
+setInterval(() => {
+    const ahora = Date.now();
+    let sesionesEliminadas = 0;
+    
+    // Recorremos todos los chats activos
+    for (const [numeroUsuario, sesion] of sesionesChat.entries()) {
+        // Si el tiempo actual menos la última actividad es mayor a 30 minutos...
+        if (ahora - sesion.ultimaActividad > TIEMPO_EXPIRACION_MS) {
+            sesionesChat.delete(numeroUsuario); // ...borramos el historial
+            sesionesEliminadas++;
+        }
+    }
+    
+    if (sesionesEliminadas > 0) {
+        console.log(`🧹 Limpieza automática: Se liberó memoria de ${sesionesEliminadas} chat(s) inactivo(s).`);
+    }
+}, INTERVALO_REVISION_MS);
+// ----------------------------------------------------
+
 // Variable global para el modelo (se inicializará al descargar el Drive)
 let model; 
 
@@ -65,14 +88,20 @@ async function descargarArchivoDeWhatsApp(mediaId) {
 // 4. FUNCIÓN PARA PREGUNTAR A GEMINI CON HISTORIAL DE CHAT
 async function analizarConGemini(prompt, archivoBase64 = null, numeroUsuario) {
     try {
+        // 1. Verificamos si el usuario ya tiene un chat guardado
         if (!sesionesChat.has(numeroUsuario)) {
             console.log(`Creando nueva sesión de chat para: ${numeroUsuario}`);
             const nuevoChat = model.startChat({ history: [] });
-            sesionesChat.set(numeroUsuario, nuevoChat);
+            // NUEVO: Guardamos el chat junto con la marca de tiempo (timestamp)
+            sesionesChat.set(numeroUsuario, { chat: nuevoChat, ultimaActividad: Date.now() });
         }
 
-        const chatActual = sesionesChat.get(numeroUsuario);
+        // 2. Recuperamos la sesión y actualizamos el tiempo de actividad
+        const sesionUsuario = sesionesChat.get(numeroUsuario);
+        sesionUsuario.ultimaActividad = Date.now(); // Reinicia el reloj porque el usuario acaba de escribir
+        const chatActual = sesionUsuario.chat;
 
+        // 3. Enviamos el mensaje
         let result;
         if (archivoBase64) {
             console.log("Enviando mensaje multimodal al chat...");
@@ -86,7 +115,7 @@ async function analizarConGemini(prompt, archivoBase64 = null, numeroUsuario) {
         console.error("Error al consultar a Gemini:", error.message || error);
         return "Lo siento, tuve un problema procesando tu mensaje. ¿Podrías repetirlo?";
     }
-} // <-- ¡Aquí estaba la llave extra en tu código original!
+}
 
 // 5. FUNCIÓN PARA ENVIAR EL MENSAJE DE VUELTA POR WHATSAPP
 async function enviarMensajeWhatsApp(numeroDestino, textoMensaje) {

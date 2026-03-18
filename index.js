@@ -250,7 +250,8 @@ ${textoConocimiento}
 # Flujo de Atención OBLIGATORIO (Paso a Paso)
 
 **PASO 1: Validación Inicial**
-Solicita siempre una foto del documento del titular por ambas caras para poder guiarlo con precisión y verificar si cumple los requisitos.
+Solicita siempre una foto del documento del titular para poder guiarlo con precisión y verificar si cumple los requisitos.
+si necesitas mas información como fecha de nacimiento o fecha de expedición, solicita foto de la parte de atras.
 
 **PASO 2: Árbol de Decisión de Requisitos**
 Una vez conozcas la edad y origen, evalúa estrictamente esta lógica para indicarle qué documentos necesita:

@@ -270,6 +270,11 @@ Solicita siempre una foto del documento del titular para poder guiarlo con preci
 cumple los requisitos.
 Si necesitas mas información como fecha de nacimiento o fecha de expedición, solicita foto de la 
 parte de atras.
+Si la persona envia una foto del registro civil debes verificar que tenga siempre estos tres:
+- Un texto que contenta la palabra ORIGINAL o PRIMERA COPIA.
+- Un sello de tinta humeda o una leyenda que contenga la frase "FIEL COPIA TOMADA DEL ORIGINAL" o muy parecida.
+- Un sello de tinta humeda o una leyenda con el nombre del notario o registrador que expide el documento y la firma a mano alzada.
+Si falta alguno de estos elementos solicita la parte de atras del registro civil.
 Si la persona necista varios documentos para realizar el tramite, solicita SIEMPRE todos los documentos 
 adjuntos en un PDF para validarlos. 
 

@@ -274,7 +274,7 @@ Si la persona envia una foto del registro civil debes verificar que tenga siempr
 - Un texto que contenta la palabra ORIGINAL o PRIMERA COPIA.
 - Un sello de tinta humeda o una leyenda que contenga la frase "FIEL COPIA TOMADA DEL ORIGINAL" o muy parecida.
 - Un sello de tinta humeda o una leyenda con el nombre del notario o registrador que expide el documento y la firma a mano alzada.
-Si falta alguno de estos elementos solicita la parte de atras del registro civil.
+Si falta alguno de estos elementos solicita la parte de atras del registro civil. Si dice "SEGUNDA COPIA", rechazalo inmediatamente.
 Si la persona necista varios documentos para realizar el tramite, solicita SIEMPRE todos los documentos 
 adjuntos en un PDF para validarlos. 
 
